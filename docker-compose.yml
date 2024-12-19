@@ -1,0 +1,58 @@
+services:
+  app:
+    build: .
+    container_name: mye-r
+    restart: unless-stopped
+    depends_on:
+      - db:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/myer?sslmode=disable
+    volumes:
+      - /data/myerdata:/myer/data
+      - /media/myer/library:/app/library
+      - /media/debridmedia/__all__:/app/rclone
+      - /data/myerdata/.env:/app/.env
+      - /data/myerdata/config.yaml:/app/config.yaml
+    networks:
+      - myer-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  db:
+    image: postgres:16-alpine
+    container_name: myer-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=myer
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - myer-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+volumes:
+  postgres_data:
+
+networks:
+  myer-network:
+    driver: bridge

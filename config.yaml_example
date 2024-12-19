@@ -1,0 +1,265 @@
+
+general:
+  library_path: "/media/myer/library"
+  rclone_path: "/media/debridmedia/__all__"
+
+  process_automatically: true
+  number_of_files_to_process_by_program: 1
+  timeout: 3600
+  max_retries: 3
+
+# PROGRAM SETTINGS
+programs:
+  content_fetcher:
+    active: true
+    priority: 1
+    check_interval: 5m
+    max_retries: 3
+  tmdb_indexer:
+    active: true
+    priority: 2
+    check_interval: 1m
+    max_retries: 3
+  scraper:
+    active: true
+    priority: 3
+    check_interval: 30s
+    max_retries: 3
+  library_matcher:
+    active: true
+    priority: 4
+    check_interval: 1m
+    max_retries: 3
+  downloader:
+    active: true
+    priority: 5
+    check_interval: 10s
+    max_retries: 3
+  symlinker:
+    active: true
+    priority: 6
+    check_interval: 1m
+    max_retries: 3
+
+tmdb:
+  enabled: true
+  api_key: ""  # Will be loaded from TMDB_API_KEY environment variable
+  base_url: "https://api.themoviedb.org/3"
+
+# FETCHER SETTINGS
+fetchers:
+  plexrss:
+    enabled: true
+    urls:
+      - ""
+      - ""
+    interval: 1  # in minutes
+
+process_management:
+  default_retry_wait_time: 1h
+  default_max_retries: 3
+
+# CUSTOM LIBRARIES
+custom_libraries:
+  - name: "anime_tv"
+    path: "/media/myer/library/"
+    active: true
+    duplicate_in_main_library: false
+    filters:
+      include:
+        - type: "genre"
+          value: "anime"
+        - type: "category"
+          value: "show"
+      exclude: []
+
+  - name: "kids_animation_movies"
+    path: "/media/myer/library/"
+    active: true
+    duplicate_in_main_library: false
+    filters:
+      include:
+        - type: "genre"
+          value: "animation"
+        - type: "rating"
+          value: "G,PG"
+        - type: "category"
+          value: "movie"
+      exclude: []
+
+  - name: "comedy_movies"
+    path: "/media/myer/library/"
+    active: true
+    duplicate_in_main_library: true
+    filters:
+      include:
+        - type: "genre"
+          value: "comedy"
+        - type: "category"
+          value: "movie"
+      exclude:
+        - type: "genre"
+          value: "animation,fantasy"
+        - type: "rating"
+          value: "PG,G"
+
+  - name: "horror_movies"
+    path: "/media/myer/library/"
+    active: false
+    duplicate_in_main_library: false
+    filters:
+      include:
+        - type: "genre"
+          value: "horror"
+        - type: "category"
+          value: "movie"
+      exclude:
+        - type: "genre"
+          value: "animation,fantasy"
+        - type: "rating"
+          value: "PG,G"
+
+  - name: "sci_fi_shows"
+    path: "/media/myer/library/"
+    active: false
+    duplicate_in_main_library: true
+    filters:
+      include:
+        - type: "genre"
+          value: "science fiction,sci-fi"
+        - type: "category"
+          value: "show"
+      exclude:
+        - type: "rating"
+          value: "TV-MA"
+
+  - name: "4k_movies"
+    path: "/media/myer/library/"
+    active: true
+    duplicate_in_main_library: false
+    filters:
+      include:
+        - type: "category"
+          value: "movie"
+        - type: "resolution"
+          value: "2160p,4K"
+      exclude: []
+
+  - name: "h265_tv_shows"
+    path: "/media/myer/library/"
+    active: true
+    duplicate_in_main_library: false
+    filters:
+      include:
+        - type: "category"
+          value: "show"
+        - type: "codec"
+          value: "H.265,HEVC"
+      exclude: []
+
+# SCRAPER / SCRAPERS
+scraping:
+  scrapers:
+    torrentio:
+      enabled: true
+      priority: 1
+      scraper_group: 1
+      only_for_custom_library: []
+      filter: "qualityfilter=dolbyvision,dolbyvisionwithhdr,threed,480p,other,scr,cam,unknown"
+      url: "https://torrentio.strem.fun"
+      timeout: 30
+      ratelimit: true
+      scoring:
+        resolution:
+          2160p: 40
+          1080p: 30
+          720p: 20
+          480p: 10
+        codec:
+          hevc: 10
+          avc: 5
+        seeds_multiplier: 1
+  filesize:
+    movie:
+      size_unit: "GB"
+      min: 1
+      max: 11
+    show:
+      size_unit: "GB"
+      min: 0.2
+      max: 7
+  preferredUploaders:
+    # High priority groups
+    # Quality indicators
+    - "SPARKS,AMIABLE,GECKOS"
+    # Known good encoders - Group 1
+    - "Yameii,LostYears,3L,BiZKiT,BLURANiUM,BMF,FraMeSToR"
+    # Known good encoders - Group 2
+    - "PmP,SiCFoI,WiLDCAT,ZQ,CiNEPHiLES,Flights,KRaLiMaRKo"
+    # Known good encoders - Group 3
+    - "NCmt,playBD,SURFINBIRD,TEPES,decibeL,EPSiLON,HiFi"
+    # Known good encoders - Group 4
+    - "iFT,NTb,PTP,SumVision,TOA,TRiToN,PTer,Chotab,EbP,SA89,sbR"
+    # Known good uploaders - Group 5
+    - "FGT,BLUDV,[QxR],DTOne,MySiLU" #,RARBG"
+  languages:
+    include:
+      - "GB"
+      - "US"
+    exclude:
+      - "RU"
+      - "CN"
+      - "IN"
+      - "HR"
+  ranking:
+    bingeGroupPriority:
+      - record:
+          - torrentio
+      - resolution:
+          - 4k
+          - 1080p
+          - 720p
+      - quality:
+          - BluRay
+          - "BluRay REMUX"
+          - BDRip
+          - WEBRip
+      - codec:
+          - hevc
+          - h264
+          - x265
+          - avc
+          - xvid
+      - other:
+          - 10bit
+          - HDR
+    maxResultsPerResolution: 3
+    scoring:
+      languageIncludeScore: 400
+      languageExcludePenalty: -1400
+      resolutionScores:
+        4k: 800
+        2160p: 800
+        1080p: 2300
+        720p: 200
+        480p: 100
+      qualityScores:
+        bluray: 1000
+        remux: 1000
+        bluray: 1000
+        bdrip: 80
+        webrip: 70
+        web-dl: 1000
+        hdrip: 50
+        dvdrip: 40
+      maxSeederScore: 1000
+      maxSizeScore: 2000  # Maximum points for size scoring
+      codecScores:
+        hevc: 1500
+        x265: 1500
+        h265: 1500
+        x264: 1040
+        h264: 1040
+        avc: 30
+        xvid: 20
+      preferredUploaderScore: 1000
