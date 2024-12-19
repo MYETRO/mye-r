@@ -15,8 +15,14 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=1 GOOS=linux go build -o /app/bin/mye-r ./cmd/main.go
+# Build all binaries
+RUN CGO_ENABLED=1 GOOS=linux go build -o /app/bin/mye-r ./cmd/main.go && \
+    CGO_ENABLED=1 GOOS=linux go build -o /app/bin/getcontent ./cmd/getcontent/main.go && \
+    CGO_ENABLED=1 GOOS=linux go build -o /app/bin/tmdb_indexer ./cmd/tmdb_indexer/main.go && \
+    CGO_ENABLED=1 GOOS=linux go build -o /app/bin/scraper ./cmd/scraper/main.go && \
+    CGO_ENABLED=1 GOOS=linux go build -o /app/bin/library_matcher ./cmd/library_matcher/main.go && \
+    CGO_ENABLED=1 GOOS=linux go build -o /app/bin/downloader ./cmd/downloader/main.go && \
+    CGO_ENABLED=1 GOOS=linux go build -o /app/bin/symlinker ./cmd/symlinker/main.go
 
 # Final stage
 FROM alpine:latest
@@ -26,8 +32,9 @@ RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/bin/mye-r /app/
+# Copy binaries from builder
+COPY --from=builder /app/bin/* /app/
+COPY --from=builder /app/migrations /app/migrations
 
 # Create necessary directories and set permissions
 RUN mkdir -p /myer/data /app/library /app/rclone && \
