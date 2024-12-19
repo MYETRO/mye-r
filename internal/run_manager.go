@@ -121,26 +121,18 @@ func (rm *RunManager) buildBinaries() error {
 	}
 
 	for _, name := range processOrder {
-		srcPath := filepath.Join(cwd, "cmd", fmt.Sprintf("run_%s.go", name))
-		binPath := filepath.Join(cwd, "bin", name)
+		binPath := filepath.Join(cwd, name)
 		if runtime.GOOS == "windows" {
 			binPath += ".exe"
 		}
 
-		// Create bin directory if it doesn't exist
-		if err := os.MkdirAll(filepath.Join(cwd, "bin"), 0755); err != nil {
-			return fmt.Errorf("failed to create bin directory: %v", err)
-		}
-
-		// Build the binary
-		cmd := exec.Command("go", "build", "-o", binPath, srcPath)
-		cmd.Dir = cwd
-		if output, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("failed to build %s: %v\nOutput: %s", name, err, string(output))
+		// Check if binary exists
+		if _, err := os.Stat(binPath); err != nil {
+			return fmt.Errorf("binary not found for %s: %v", name, err)
 		}
 
 		rm.binaries[name] = binPath
-		rm.log.Info("RunManager", "Build", fmt.Sprintf("Built binary for %s", name))
+		rm.log.Info("RunManager", "Build", fmt.Sprintf("Found binary for %s", name))
 	}
 
 	return nil
