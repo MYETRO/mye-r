@@ -54,7 +54,11 @@ func main() {
 	// Initialize and register all components in order of processing
 	if cfg.Fetchers["plexrss"].Enabled {
 		customLogger.Info("Application", "ContentFetcher", "Registering content fetcher...")
-		contentFetcher := getcontent.New(cfg, db)
+		contentFetcher, err := getcontent.New(cfg, db)
+		if err != nil {
+			customLogger.Error("Application", "ContentFetcher", fmt.Sprintf("Failed to create content fetcher: %v", err))
+			return
+		}
 		runManager.RegisterProcess(&internal.ProcessInfo{
 			ProcessName: "getcontent",
 			Process:    contentFetcher,

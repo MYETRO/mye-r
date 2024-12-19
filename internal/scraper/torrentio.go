@@ -270,7 +270,7 @@ func (s *TorrentioScraper) scrapeTVShow(item *database.WatchlistItem) error {
 			InfoHash:          sql.NullString{String: stream.InfoHash, Valid: true},
 			ScrapedScore:      sql.NullInt32{Int32: int32(stream.Score), Valid: true},
 			ScrapedCodec:      sql.NullString{String: stream.ParsedInfo.Codec, Valid: true},
-			StatusResults:     sql.NullString{String: "pending_download", Valid: true},
+			StatusResults:     sql.NullString{String: "scraped", Valid: true},
 		}
 
 		// Save scrape result
@@ -426,7 +426,7 @@ func (s *TorrentioScraper) processSeasonPack(stream Stream, item *database.Watch
 		InfoHash:          sql.NullString{String: stream.InfoHash, Valid: true},
 		ScrapedScore:      sql.NullInt32{Int32: int32(stream.Score), Valid: true},
 		ScrapedCodec:      sql.NullString{String: stream.ParsedInfo.Codec, Valid: true},
-		StatusResults:     sql.NullString{String: "pending_download", Valid: true},
+		StatusResults:     sql.NullString{String: "ready_for_download", Valid: true},
 	}
 
 	// Save scrape result
@@ -548,7 +548,7 @@ func (s *TorrentioScraper) processStreams(streams []Stream, item *database.Watch
 			ScrapedScore:      sql.NullInt32{Int32: int32(bestMatch.Score), Valid: true},
 			ScrapedFileSize:   sql.NullString{String: bestMatch.ParsedInfo.FileSize, Valid: true},
 			ScrapedCodec:      sql.NullString{String: bestMatch.ParsedInfo.Codec, Valid: true},
-			StatusResults:     sql.NullString{String: "scraped", Valid: true},
+			StatusResults:     sql.NullString{String: "ready_for_download", Valid: true},
 		}
 
 		_, err := s.db.SaveScrapeResult(scrapeResult)

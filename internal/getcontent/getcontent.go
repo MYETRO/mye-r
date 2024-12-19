@@ -2,8 +2,6 @@ package getcontent
 
 import (
 	"context"
-	"sync"
-
 	"mye-r/internal/config"
 	"mye-r/internal/database"
 	"mye-r/internal/logger"
@@ -21,7 +19,7 @@ type GetContent struct {
 	fetchers map[string]Fetcher
 }
 
-func New(cfg *config.Config, db *database.DB) *GetContent {
+func New(cfg *config.Config, db *database.DB) (*GetContent, error) {
 	gc := &GetContent{
 		cfg:      cfg,
 		db:       db,
@@ -40,22 +38,17 @@ func New(cfg *config.Config, db *database.DB) *GetContent {
 		}
 	}
 
-	return gc
+	return gc, nil
 }
 
 func (gc *GetContent) Start(ctx context.Context) error {
-	var wg sync.WaitGroup
-
 	for name, fetcher := range gc.fetchers {
-		wg.Add(1)
 		go func(name string, f Fetcher) {
-			defer wg.Done()
 			gc.log.Info("GetContent", "Start", "Starting "+name+" fetcher")
 			f.Start(ctx)
 		}(name, fetcher)
 	}
 
-	wg.Wait()
 	return nil
 }
 

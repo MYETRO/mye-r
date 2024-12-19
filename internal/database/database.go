@@ -1322,3 +1322,48 @@ func (db *DB) GetItemsByStatus(status string) ([]*WatchlistItem, error) {
 
 	return items, nil
 }
+
+// GetReturningSeriesWithUnscrapedEpisodes gets TV shows that are marked as "Returning Series"
+// and have episodes that haven't been scraped yet and have an air date before now
+func (db *DB) GetReturningSeriesWithUnscrapedEpisodes() ([]*WatchlistItem, error) {
+	query := `
+		SELECT DISTINCT w.id, w.title, w.item_year, w.requested_date, w.link, w.imdb_id, 
+			   w.tmdb_id, w.tvdb_id, w.description, w.category, w.genres, w.rating, 
+			   w.status, w.current_step, w.thumbnail_url, w.created_at, w.updated_at, 
+			   w.best_scraped_filename, w.best_scraped_resolution, w.last_scraped_date, 
+			   w.custom_library, w.main_library_path, w.best_scraped_score, w.media_type, 
+			   w.total_seasons, w.total_episodes, w.release_date, w.show_status
+		FROM watchlistitem w
+		JOIN seasons s ON s.watchlist_item_id = w.id
+		JOIN tv_episodes e ON e.season_id = s.id
+		WHERE w.show_status = 'Returning Series'
+		AND e.air_date <= CURRENT_DATE
+		AND e.scraped = false
+		ORDER BY w.id ASC
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("error querying returning series: %v", err)
+	}
+	defer rows.Close()
+
+	var items []*WatchlistItem
+	for rows.Next() {
+		item := &WatchlistItem{}
+		err := rows.Scan(
+			&item.ID, &item.Title, &item.ItemYear, &item.RequestedDate, &item.Link,
+			&item.ImdbID, &item.TmdbID, &item.TvdbID, &item.Description, &item.Category,
+			&item.Genres, &item.Rating, &item.Status, &item.CurrentStep, &item.ThumbnailURL,
+			&item.CreatedAt, &item.UpdatedAt, &item.BestScrapedFilename, &item.BestScrapedResolution,
+			&item.LastScrapedDate, &item.CustomLibrary, &item.MainLibraryPath, &item.BestScrapedScore,
+			&item.MediaType, &item.TotalSeasons, &item.TotalEpisodes, &item.ReleaseDate, &item.ShowStatus,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning returning series: %v", err)
+		}
+		items = append(items, item)
+	}
+
+	return items, nil
+}

@@ -48,7 +48,11 @@ func main() {
     defer db.Close()
 
     // Initialize content fetcher
-    contentFetcher := getcontent.New(cfg, db)
+    contentFetcher, err := getcontent.New(cfg, db)
+    if err != nil {
+        myLogger.Error("main", "New", fmt.Sprintf("Failed to create content fetcher: %v", err))
+        os.Exit(1)
+    }
 
     // Content fetcher is special - it always runs to check for new content
     myLogger.Info("main", "Process", "Checking for new content")

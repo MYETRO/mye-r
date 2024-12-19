@@ -102,10 +102,21 @@ func (sm *ScraperManager) RunScrapers(ctx context.Context) {
 			// Update item status
 			result, err := sm.db.GetLatestScrapeResult(item.ID)
 			if err == nil && result != nil && result.ScrapedFilename.Valid && result.ScrapedFilename.String != "" {
-				item.Status = sql.NullString{String: "ready_for_download", Valid: true}
-				item.CurrentStep = sql.NullString{String: "download_pending", Valid: true}
+				// Set status based on scrape result status
+				switch result.StatusResults.String {
+				case "scraped", "pending_download":
+					item.Status = sql.NullString{String: "ready_for_download", Valid: true}
+					item.CurrentStep = sql.NullString{String: "download_pending", Valid: true}
+				case "scraping_failed", "ignored_hash":
+					item.Status = sql.NullString{String: "scrape_failed", Valid: true}
+					item.CurrentStep = sql.NullString{String: "scrape_pending", Valid: true}
+				default:
+					item.Status = sql.NullString{String: "scrape_failed", Valid: true}
+					item.CurrentStep = sql.NullString{String: "scrape_pending", Valid: true}
+				}
 			} else {
 				item.Status = sql.NullString{String: "scrape_failed", Valid: true}
+				item.CurrentStep = sql.NullString{String: "scrape_pending", Valid: true}
 			}
 			if err = sm.db.UpdateWatchlistItem(item); err != nil {
 				sm.log.Error("ScraperManager", "RunScrapers", fmt.Sprintf("Error updating item status: %v", err))
