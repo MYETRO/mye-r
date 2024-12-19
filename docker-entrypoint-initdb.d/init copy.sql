@@ -1,8 +1,48 @@
+-- Create and connect to the database
+\c postgres;
+
+CREATE DATABASE mye_r;
+
+\c mye_r;
+
 -- Create sequences
 CREATE SEQUENCE IF NOT EXISTS watchlistitem_id_seq;
 CREATE SEQUENCE IF NOT EXISTS seasons_id_seq;
 CREATE SEQUENCE IF NOT EXISTS tv_episodes_id_seq;
 CREATE SEQUENCE IF NOT EXISTS scrape_results_id_seq;
+
+-- Create status ENUM type
+DO $$ BEGIN
+    CREATE TYPE item_status AS ENUM (
+        'new',
+        'indexed',
+        'indexing_failed',
+        'library_matched',
+        'matcher_failed',
+        'ready_for_download',
+        'scrape_failed',
+        'downloaded',
+        'download_failed',
+        'completed',
+        'symlink_failed'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- Create step ENUM type
+DO $$ BEGIN
+    CREATE TYPE process_step AS ENUM (
+        'indexing_pending',
+        'librarymatch_pending',
+        'scraping_pending',
+        'download_pending',
+        'symlink_pending',
+        'matching'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- Table: public.watchlistitem
 CREATE TABLE IF NOT EXISTS public.watchlistitem
@@ -19,7 +59,7 @@ CREATE TABLE IF NOT EXISTS public.watchlistitem
     category character varying(50) COLLATE pg_catalog."default",
     genres text COLLATE pg_catalog."default",
     rating character varying(10) COLLATE pg_catalog."default",
-    status character varying(50) COLLATE pg_catalog."default" DEFAULT 'new',
+    status item_status DEFAULT 'new',
     thumbnail_url text COLLATE pg_catalog."default",
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
@@ -35,7 +75,7 @@ CREATE TABLE IF NOT EXISTS public.watchlistitem
     release_date date,
     retry_count integer DEFAULT 0,
     show_status character varying(255) COLLATE pg_catalog."default",
-    current_step character varying(50) COLLATE pg_catalog."default" DEFAULT 'indexing_pending',
+    current_step process_step DEFAULT 'indexing_pending',
     CONSTRAINT watchlistitem_pkey PRIMARY KEY (id)
 )
 TABLESPACE pg_default;
@@ -44,7 +84,9 @@ ALTER TABLE IF EXISTS public.watchlistitem
     OWNER to postgres;
 
 COMMENT ON COLUMN public.watchlistitem.status
-    IS 'Overall status of the watchlist item';
+    IS 'Overall status of the watchlist item (new, indexed, indexing_failed, etc)';
+COMMENT ON COLUMN public.watchlistitem.current_step
+    IS 'Current processing step (indexing_pending, librarymatch_pending, etc)';
 
 -- Table: public.seasons
 CREATE TABLE IF NOT EXISTS public.seasons
@@ -99,24 +141,12 @@ CREATE TABLE IF NOT EXISTS public.scrape_results
     scraped_filename text COLLATE pg_catalog."default",
     scraped_resolution text COLLATE pg_catalog."default",
     scraped_date timestamp without time zone,
-    info_hash text COLLATE pg_catalog."default",
-    debrid_id text COLLATE pg_catalog."default",
-    debrid_uri text COLLATE pg_catalog."default",
     scraped_score integer,
-    scraped_file_size text COLLATE pg_catalog."default",
-    scraped_codec text COLLATE pg_catalog."default",
-    status_results text COLLATE pg_catalog."default",
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT scrape_results_pkey PRIMARY KEY (id),
-    CONSTRAINT fk_watchlist_item FOREIGN KEY (watchlist_item_id)
-        REFERENCES public.watchlistitem (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE,
     CONSTRAINT scrape_results_watchlist_item_id_fkey FOREIGN KEY (watchlist_item_id)
         REFERENCES public.watchlistitem (id) MATCH SIMPLE
         ON UPDATE NO ACTION
-        ON DELETE NO ACTION
+        ON DELETE CASCADE
 )
 TABLESPACE pg_default;
 
@@ -124,23 +154,6 @@ ALTER TABLE IF EXISTS public.scrape_results
     OWNER to postgres;
 
 -- Create indexes
-CREATE INDEX IF NOT EXISTS idx_scrape_results_status
-    ON public.scrape_results USING btree
-    (status_results COLLATE pg_catalog."default" ASC NULLS LAST)
-    TABLESPACE pg_default;
-
-CREATE INDEX IF NOT EXISTS idx_scrape_results_watchlist_item_id
-    ON public.scrape_results USING btree
-    (watchlist_item_id ASC NULLS LAST)
-    TABLESPACE pg_default;
-
--- Create indexes for watchlistitem status and current_step
-CREATE INDEX IF NOT EXISTS idx_watchlistitem_status
-    ON public.watchlistitem USING btree
-    (status COLLATE pg_catalog."default" ASC NULLS LAST)
-    TABLESPACE pg_default;
-
-CREATE INDEX IF NOT EXISTS idx_watchlistitem_current_step
-    ON public.watchlistitem USING btree
-    (current_step COLLATE pg_catalog."default" ASC NULLS LAST)
-    TABLESPACE pg_default;
+CREATE INDEX IF NOT EXISTS idx_watchlistitem_status ON public.watchlistitem(status);
+CREATE INDEX IF NOT EXISTS idx_watchlistitem_current_step ON public.watchlistitem(current_step);
+CREATE INDEX IF NOT EXISTS idx_watchlistitem_media_type ON public.watchlistitem(media_type);

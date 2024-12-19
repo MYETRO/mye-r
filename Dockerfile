@@ -31,7 +31,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o /app/bin/mye-r ./cmd/main.go && \
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata postgresql-client
 
 WORKDIR /app
 
@@ -44,13 +44,26 @@ COPY --from=builder /app/bin/librarymatcher /app/librarymatcher
 COPY --from=builder /app/bin/downloader /app/downloader
 COPY --from=builder /app/bin/symlinker /app/symlinker
 
+# Copy initialization script
+COPY docker-entrypoint-initdb.d/init.sql /app/init.sql
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Create necessary directories and set permissions
 RUN mkdir -p /myer/data /app/library /app/rclone && \
     adduser -D -u 1000 appuser && \
     chown -R appuser:appuser /app /myer
 
+# Set environment variables for database connection
+ENV POSTGRES_HOST=db \
+    POSTGRES_PORT=5432 \
+    POSTGRES_USER=postgres \
+    POSTGRES_PASSWORD=postgres \
+    POSTGRES_DB=mye_r
+
 # Switch to non-root user
 USER appuser
 
-# Command to run the application
-ENTRYPOINT ["/app/mye-r"]
+# Set the entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["/app/mye-r"]
