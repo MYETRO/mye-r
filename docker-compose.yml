@@ -9,12 +9,12 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/London
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db # This should always be the service name
+      - POSTGRES_PORT=5432 # This is the port INSIDE the db container
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=mye_r
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/mye_r?sslmode=disable
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/mye_r?sslmode=disable # Same here
     volumes:
       - /data/myerdata:/myer/data
       - /media/myer/library:/app/library
@@ -35,23 +35,22 @@ services:
     container_name: myer-db
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5433:5432" # Host port:Container port
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=mye_r
     volumes:
-      - type: bind
-        source: ./docker-entrypoint-initdb.d
-        target: /docker-entrypoint-initdb.d
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - postgres_data:/var/lib/postgresql/data
     networks:
       - myer-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mye_r"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     deploy:
       resources:
         limits:

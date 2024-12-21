@@ -35,14 +35,17 @@ RUN apk add --no-cache ca-certificates tzdata postgresql-client
 
 WORKDIR /app
 
+# Create bin directory
+RUN mkdir -p /app/bin
+
 # Copy binaries from builder and rename them to match expected names
-COPY --from=builder /app/bin/mye-r /app/mye-r
-COPY --from=builder /app/bin/getcontent /app/getcontent
-COPY --from=builder /app/bin/tmdb_indexer /app/tmdb_indexer
-COPY --from=builder /app/bin/scraper /app/scraper
-COPY --from=builder /app/bin/librarymatcher /app/librarymatcher
-COPY --from=builder /app/bin/downloader /app/downloader
-COPY --from=builder /app/bin/symlinker /app/symlinker
+COPY --from=builder /app/bin/mye-r /app/bin/mye-r
+COPY --from=builder /app/bin/getcontent /app/bin/getcontent
+COPY --from=builder /app/bin/tmdb_indexer /app/bin/tmdb_indexer
+COPY --from=builder /app/bin/scraper /app/bin/scraper
+COPY --from=builder /app/bin/librarymatcher /app/bin/librarymatcher
+COPY --from=builder /app/bin/downloader /app/bin/downloader
+COPY --from=builder /app/bin/symlinker /app/bin/symlinker
 
 # Copy initialization script
 COPY docker-entrypoint-initdb.d/init.sql /app/init.sql
@@ -66,4 +69,4 @@ USER appuser
 
 # Set the entrypoint
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["/app/mye-r"]
+CMD ["/app/bin/mye-r"]
